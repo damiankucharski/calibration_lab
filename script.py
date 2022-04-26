@@ -38,14 +38,8 @@ class CalibrationResults:
         self.tvecs = tvecs
 
 
-SQUARE_SIZE = 28.37
+SQUARE_SIZE = [28.37, 28.37, 1]
 
-calibration_path = Path('advanced-computer-vision/data/calibration')
-
-camera_paths = {
-    'left': calibration_path / 'left',
-    'right': calibration_path / 'right',
-}
 
 
 def get_image_number(image_name):
@@ -74,7 +68,7 @@ def cleanup():
 def construct_objp(checkboard: Checkboard, square_size=SQUARE_SIZE):
     objp = np.zeros((checkboard.X_CONST * checkboard.Y_CONST, 3), np.float32)
     objp[:, :2] = np.mgrid[:checkboard.X_CONST, :checkboard.Y_CONST].T.reshape(-1, 2)
-    return objp * SQUARE_SIZE
+    return (objp * SQUARE_SIZE).astype(np.float32)
 
 
 def calibrate_camera(camera_paths, objp):
@@ -158,10 +152,10 @@ def undistort_images(camera_paths):
             destination = camera_path / 'undistorted' / os.path.basename(fname)
             plt.savefig(destination)
             plt.close()
-            newcameramtx_path = camera_path / 'calibration_results' / 'undistorted_camera_matrices' / f"{camera_name}_{fname.name}_undistorted"
-            with open(newcameramtx_path, 'wb') as file:
-                print(f'Saving new camera matrix to {newcameramtx_path}')
-                pickle.dump(newcameramtx, file)
+        newcameramtx_path = camera_path / 'calibration_results' / f"{camera_name}_undistorted"
+        with open(newcameramtx_path, 'wb') as file:
+            print(f'Saving new camera matrix to {newcameramtx_path}')
+            pickle.dump(newcameramtx, file)
 
 def stereo_calibrate(dims, objpoints, imgpoints_l, imgpoints_r, M1, d1, M2, d2):
     flags = 0
@@ -258,13 +252,24 @@ def rectify():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input_path', default='advanced-computer-vision/data/calibration')
     parser.add_argument('-c', '--calibrate', action='store_true')
     parser.add_argument('-u', '--undistort', action='store_true')
     parser.add_argument('-cl', '--clean', action='store_true')
     parser.add_argument('-r', '--rectify', action='store_true')
     parser.add_argument('-a', '--all', action='store_true')
 
+
+
     args = parser.parse_args()
+
+    calibration_path = Path(args.input_path)
+
+    camera_paths = {
+        'left': calibration_path / 'left',
+        'right': calibration_path / 'right',
+    }
+
 
     if args.all:
         checkboard_params = Checkboard(6, 8)
